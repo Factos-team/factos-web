@@ -1,6 +1,6 @@
 // src/components/chat/Sidebar.js
 'use client'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Scale } from 'lucide-react'
 import ChatItem from './ChatItem'
 
 export default function Sidebar({
@@ -15,8 +15,6 @@ export default function Sidebar({
 }) {
   return (
     <>
-      
-
       {/* 사이드바 컨테이너 */}
       <div style={{
         width: isOpen ? '320px' : '0px', // 컨테이너는 크기 변화
@@ -69,18 +67,24 @@ export default function Sidebar({
               <X style={{ width: '20px', height: '20px' }} />
             </button>
 
-            {/* Factos 제목 - 우측 정렬 */}
+            {/* Factos 제목 + 아이콘 - 우측 정렬 */}
             <div style={{
               flex: '1',
               display: 'flex',
               justifyContent: 'flex-end',
-              alignItems: 'center'        // ← 추가: 세로 중앙 정렬
+              alignItems: 'center',
+              gap: '8px'
             }}>
+              <Scale style={{
+                width: '20px',
+                height: '20px',
+                color: '#f59e0b'
+              }} />
               <h2 style={{
                 fontSize: '18px',
                 fontWeight: '600',
-                margin: '0px 4px 0px 0px',
-                lineHeight: '18px',       // ← fontSize와 동일하게
+                margin: '0',
+                lineHeight: '18px',
                 color: 'white'
               }}>
                 Factos
@@ -98,7 +102,7 @@ export default function Sidebar({
               alignItems: 'center',
               justifyContent: 'center',
               padding: '10px 12px',
-              margin: '8px 8px 0px 8px',
+              margin: '8px 8px 8px 8px',
               backgroundColor: '#1f2937',
               border: '1px solid #374151',
               borderRadius: '12px',
@@ -112,13 +116,18 @@ export default function Sidebar({
             <Plus style={{ width: '20px', height: '20px', marginRight: '8px' }} />
             새 채팅
           </button>
+          
           {/* 채팅 리스트 */}
-          <div style={{
-            flex: '1',
-            overflowY: 'auto',
-            padding: '8px',
-            scrollbarWidth: 'thin'
-          }}>
+          <div 
+            style={{
+              flex: '1',
+              overflowY: 'auto',
+              padding: '8px',
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(163, 174, 190, 0.69) #111827'
+            }}
+            id="chat-list-container"
+          >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {chatSessions.map((chat) => (
                 <ChatItem
@@ -142,7 +151,7 @@ export default function Sidebar({
             color: '#6b7280',
             textAlign: 'center'
           }}>
-            ChatBot AI v1.0
+             Factos v0.1
           </div>
         </div>
       </div>
@@ -150,30 +159,12 @@ export default function Sidebar({
       {/* CSS 스타일 - 호버 효과를 CSS로 처리 */}
       <style jsx>{`
         .sidebar-close-button:hover {
-          background-color: #374151 !important;
+          background-color: #475569 !important;
         }
 
         .new-chat-button:hover {
-          background-color: #374151 !important;
-          border-color: #4b5563 !important;
-        }
-
-        /* 스크롤바 스타일 */
-        .chat-list::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .chat-list::-webkit-scrollbar-track {
-          background:rgba(255, 0, 221, 1); /* 사이드바 배경색과 동일 */
-        }
-
-        .chat-list::-webkit-scrollbar-thumb {
-          background: #374151;
-          border-radius: 3px;
-        }
-
-        .chat-list::-webkit-scrollbar-thumb:hover {
-          background: #4b5563;
+          background-color: #475569 !important;
+          border-color: #64748b !important;
         }
       `}</style>
     </>

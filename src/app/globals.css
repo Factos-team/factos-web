@@ -3,6 +3,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== Z-INDEX 레이어 시스템 ===== */
+:root {
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-dropdown: 100;
+  --z-tooltip: 200;
+  --z-modal: 300;
+  --z-notification: 400;
+  --z-critical: 500;
+}
+
+/* 레이어별 CSS 클래스 */
+.z-base { z-index: var(--z-base); }
+.z-sticky { z-index: var(--z-sticky); }
+.z-dropdown { z-index: var(--z-dropdown); }
+.z-tooltip { z-index: var(--z-tooltip); }
+.z-modal { z-index: var(--z-modal); }
+.z-notification { z-index: var(--z-notification); }
+.z-critical { z-index: var(--z-critical); }
+
+/* 모달 전용 서브 레이어 */
+.z-modal-overlay { z-index: calc(var(--z-modal) - 1); } /* 299 */
+.z-modal-content { z-index: var(--z-modal); }           /* 300 */
+
+
 @layer base {
   html {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

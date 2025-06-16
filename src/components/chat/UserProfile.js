@@ -2,6 +2,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { User, Settings, MoreVertical } from 'lucide-react'
+import { Z_INDEX } from '@/lib/zIndex'
 
 export default function UserProfile() {
   const [isOpen, setIsOpen] = useState(false)

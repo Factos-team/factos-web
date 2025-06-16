@@ -1,7 +1,15 @@
-// src/app/chat/page.js - 메인 페이지 (localStorage로 채팅 유지)
+// src/app/chat/page.js - 메인 페이지 (고유 채팅 ID 생성)
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { Sidebar, ChatArea } from '@/components/chat'
+
+// 짧고 고유한 채팅 ID 생성 함수 (숫자)
+const generateChatId = () => {
+  // 현재 타임스탬프 + 랜덤 숫자로 고유한 숫자 ID 생성
+  const timestamp = Date.now() // 밀리초 타임스탬프
+  const random = Math.floor(Math.random() * 1000) // 0-999 랜덤
+  return parseInt(`${timestamp}${random}`) // 숫자로 반환
+}
 
 export default function ChatPage() {
   // 전역 상태
@@ -22,7 +30,7 @@ export default function ChatPage() {
   const saveCurrentChatId = (chatId) => {
     setCurrentChatId(chatId)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('factos-current-chat-id', chatId.toString())
+      localStorage.setItem('factos-current-chat-id', String(chatId))
     }
   }
 
@@ -51,7 +59,7 @@ export default function ChatPage() {
           
           setChatSessions(restoredChats)
           
-          // 현재 채팅 ID 복원
+          // 현재 채팅 ID 복원 (숫자로 변환)
           if (savedCurrentId) {
             const currentId = parseInt(savedCurrentId)
             if (restoredChats.find(chat => chat.id === currentId)) {
@@ -68,54 +76,36 @@ export default function ChatPage() {
         }
       }
       
-      // 저장된 데이터가 없으면 기본 채팅 생성
-      const defaultChat = {
-        id: 1,
-        title: "새로운 채팅",
-        messages: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        titleSetByUser: false
-      }
-      
-      setChatSessions([defaultChat])
-      setCurrentChatId(1)
-      
-      // localStorage에 저장
-      localStorage.setItem('factos-chat-sessions', JSON.stringify([defaultChat]))
-      localStorage.setItem('factos-current-chat-id', '1')
+      // 저장된 데이터가 없으면 빈 상태로 시작
+      setChatSessions([])
+      setCurrentChatId(null)
       
     } catch (error) {
       console.error('채팅 데이터 불러오기 실패:', error)
       
-      // 오류 시 기본 채팅 생성
-      const defaultChat = {
-        id: 1,
-        title: "새로운 채팅",
-        messages: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        titleSetByUser: false
-      }
-      setChatSessions([defaultChat])
-      setCurrentChatId(1)
+      // 오류 시 빈 상태로 시작
+      setChatSessions([])
+      setCurrentChatId(null)
     }
     
     setIsLoaded(true)
   }, [])
 
-  // 현재 채팅 가져오기
-  const currentChat = chatSessions.find(chat => chat.id === currentChatId) || chatSessions[0]
+  // 현재 채팅 가져오기 (빈 상태 지원)
+  const currentChat = chatSessions.length > 0 
+    ? chatSessions.find(chat => chat.id === currentChatId) || chatSessions[0]
+    : null
 
   // 새 채팅 생성
   const createNewChat = () => {
     const newChat = {
-      id: Date.now(),
+      id: generateChatId(), // 고유한 숫자 ID 생성
       title: "새로운 채팅",
       messages: [],
       createdAt: new Date(),
       updatedAt: new Date(),
-      titleSetByUser: false
+      titleSetByUser: false,
+      errorMessage: null // 에러 메시지 초기값
     }
     const newSessions = [newChat, ...chatSessions]
     saveChatSessions(newSessions)
@@ -127,15 +117,22 @@ export default function ChatPage() {
     saveCurrentChatId(chatId)
   }
 
-  // 채팅 삭제
+  // 채팅 삭제 (자동 생성 제거)
   const deleteChat = (chatId) => {
-    if (chatSessions.length === 1) return
-    
     const newSessions = chatSessions.filter(chat => chat.id !== chatId)
     saveChatSessions(newSessions)
     
+    // 삭제한 채팅이 현재 선택된 채팅이면 다른 채팅으로 이동
     if (currentChatId === chatId) {
-      saveCurrentChatId(newSessions[0]?.id)
+      if (newSessions.length > 0) {
+        saveCurrentChatId(newSessions[0]?.id)
+      } else {
+        // 모든 채팅이 삭제되면 빈 상태로 유지
+        setCurrentChatId(null)
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('factos-current-chat-id')
+        }
+      }
     }
   }
 
@@ -154,29 +151,48 @@ export default function ChatPage() {
     saveChatSessions(newSessions)
   }
 
-  // 메시지 추가 (제목 자동 설정 로직 개선)
+  // 메시지 추가 (함수형 업데이트로 수정)
   const addMessage = (message) => {
-    const newSessions = chatSessions.map(chat => {
-      if (chat.id !== currentChatId) return chat
+    setChatSessions(prevSessions => {
+      const newSessions = prevSessions.map(chat => {
+        if (chat.id !== currentChatId) return chat
+        
+        return {
+          ...chat,
+          messages: [...chat.messages, message],
+          updatedAt: new Date(),
+          errorMessage: null // 새 메시지 추가 시 에러 메시지 제거
+        }
+      })
       
-      // 제목 결정 로직
-      let newTitle = chat.title
-      
-      // 1. 사용자가 직접 제목을 설정한 경우: 제목 변경 안 함
-      // 2. 첫 번째 사용자 메시지이고, 아직 자동 제목이 설정되지 않은 경우에만 제목 변경
-      if (!chat.titleSetByUser && chat.messages.length === 0 && message.isUser) {
-        newTitle = message.text.slice(0, 30) + (message.text.length > 30 ? '...' : '')
+      // localStorage에 저장
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('factos-chat-sessions', JSON.stringify(newSessions))
       }
       
-      return {
-        ...chat, 
-        title: newTitle,
-        messages: [...chat.messages, message],
-        updatedAt: new Date()
-      }
+      return newSessions
     })
-    
-    saveChatSessions(newSessions)
+  }
+
+  // 채팅별 에러 메시지 설정 (함수형 업데이트로 수정)
+  const setErrorForChat = (chatId, errorMessage) => {
+    setChatSessions(prevSessions => {
+      const newSessions = prevSessions.map(chat => {
+        if (chat.id !== chatId) return chat
+        
+        return {
+          ...chat,
+          errorMessage: errorMessage
+        }
+      })
+      
+      // localStorage에 저장
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('factos-chat-sessions', JSON.stringify(newSessions))
+      }
+      
+      return newSessions
+    })
   }
 
   // 로딩 중 표시
@@ -238,7 +254,10 @@ export default function ChatPage() {
         {/* 채팅 영역 */}
         <ChatArea
           chat={currentChat}
+          chatSessions={chatSessions}
           onAddMessage={addMessage}
+          onSetError={setErrorForChat}
+          onNewChat={createNewChat}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
