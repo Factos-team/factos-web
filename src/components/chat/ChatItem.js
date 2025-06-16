@@ -2,6 +2,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { MessageSquare, MoreHorizontal, Edit3, Trash2 } from 'lucide-react'
+import DeleteConfirmModal from '../ui/DeleteConfirmModal'
 
 export default function ChatItem({ 
   chat, 
@@ -9,13 +10,16 @@ export default function ChatItem({
   onSelect, 
   onDelete, 
   onRename,
-  canDelete = false 
+  canDelete = true
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [editName, setEditName] = useState(chat.title)
+  const [modalPosition, setModalPosition] = useState(null)
   const menuRef = useRef(null)
   const inputRef = useRef(null)
+  const chatItemRef = useRef(null)
 
   // 날짜 포맷팅
   const formatDate = (date) => {
@@ -58,7 +62,7 @@ export default function ChatItem({
       onRename?.(chat.id, newName)
     }
     setIsEditing(false)
-    setEditName(chat.title) // 원래 이름으로 리셋 (저장 실패 대비)
+    setEditName(chat.title)
   }
 
   // 편집 취소
@@ -67,13 +71,32 @@ export default function ChatItem({
     setEditName(chat.title)
   }
 
-  // 삭제 확인
-  const handleDelete = () => {
-    const confirmed = window.confirm(`"${chat.title}" 채팅을 삭제하시겠습니까?\n\n삭제된 채팅은 복구할 수 없습니다.`)
-    if (confirmed) {
-      onDelete?.(chat.id)
-    }
+  // 삭제 모달 열기
+  const handleDeleteClick = () => {
     setIsMenuOpen(false)
+    
+    // ChatItem의 위치를 기준으로 모달 위치 계산 (삭제 버튼들이 가까이 오도록)
+    if (chatItemRef.current) {
+      const rect = chatItemRef.current.getBoundingClientRect()
+      setModalPosition({
+        top: rect.top + rect.height / 2, // ChatItem 세로 중앙
+        left: 250 // 더 왼쪽으로 이동 (삭제 버튼들이 가까이)
+      })
+    } else {
+      // fallback: 사이드바 우측 중앙
+      setModalPosition({
+        top: window.innerHeight / 2,
+        left: 250
+      })
+    }
+    
+    setIsDeleteModalOpen(true)
+  }
+
+  // 삭제 확인
+  const handleDeleteConfirm = () => {
+    onDelete?.(chat.id)
+    setIsDeleteModalOpen(false)
   }
 
   // 메뉴 버튼 클릭 (이벤트 버블링 방지)
@@ -94,6 +117,7 @@ export default function ChatItem({
   return (
     <>
       <div
+        ref={chatItemRef}
         className="chat-item-container"
         onClick={() => !isEditing && onSelect?.(chat.id)}
         style={{
@@ -148,7 +172,7 @@ export default function ChatItem({
                 whiteSpace: 'nowrap',
                 color: isActive ? 'white' : '#d1d5db',
                 width: '100%',
-                paddingRight: '8px' // 메뉴 버튼 공간 확보
+                paddingRight: '8px'
               }}>
                 {chat.title}
               </p>
@@ -239,60 +263,70 @@ export default function ChatItem({
                   이름 변경
                 </button>
 
-                {canDelete && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDelete()
-                    }}
-                    className="menu-item-danger"
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '8px 12px',
-                      fontSize: '13px',
-                      color: '#ef4444',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s',
-                      textAlign: 'left'
-                    }}
-                  >
-                    <Trash2 style={{ width: '14px', height: '14px', marginRight: '8px' }} />
-                    삭제
-                  </button>
-                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDeleteClick()
+                  }}
+                  className="menu-item-danger"
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '8px 12px',
+                    fontSize: '13px',
+                    color: '#ef4444',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    textAlign: 'left'
+                  }}
+                >
+                  <Trash2 style={{ width: '14px', height: '14px', marginRight: '8px' }} />
+                  삭제
+                </button>
               </div>
             )}
           </div>
         </div>
+
+        {/* CSS 스타일 - 호버 효과를 CSS로 처리 */}
+        <style jsx>{`
+          .chat-item-container:not([style*="background-color: rgb(55, 65, 81)"]):hover {
+            background-color: #1f2937 !important;
+          }
+
+          .chat-item-container:hover .menu-button {
+            opacity: 1 !important;
+          }
+
+          .menu-button:hover {
+            background-color: #374151 !important;
+            color: #d1d5db !important;
+          }
+
+          .menu-item:hover {
+            background-color: #374151 !important;
+          }
+
+          .menu-item-danger:hover {
+            background-color: #374151 !important;
+          }
+        `}</style>
       </div>
 
-      {/* CSS 스타일 - 호버 효과를 CSS로 처리 */}
-      <style jsx>{`
-        .chat-item-container:not([style*="background-color: rgb(55, 65, 81)"]):hover {
-          background-color: #1f2937 !important;
-        }
-
-        .chat-item-container:hover .menu-button {
-          opacity: 1 !important;
-        }
-
-        .menu-button:hover {
-          background-color: #374151 !important;
-          color: #d1d5db !important;
-        }
-
-        .menu-item:hover {
-          background-color: #374151 !important;
-        }
-
-        .menu-item-danger:hover {
-          background-color: #374151 !important;
-        }
-      `}</style>
+      {/* 기존 DeleteConfirmModal 사용 */}
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="채팅 삭제"
+        message={`"${chat.title}" 채팅을 삭제하시겠습니까?`}
+        confirmText="삭제"
+        cancelText="취소"
+        position={modalPosition}
+      />
     </>
   )
 }
