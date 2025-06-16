@@ -7,7 +7,6 @@ const __dirname = dirname(__filename);
 
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
-// 아래처럼 config() 형태로 변경
 const eslintConfig = [
   ...compat.config({
     extends: ["next/core-web-vitals"],
